@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "265180770998",
+    "project_id": "peertopeerexample",
+    "storage_bucket": "peertopeerexample.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265180770998:android:91e714530834fe49072c17",
+        "android_client_info": {
+          "package_name": "com.developerspace.webrtcsample"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "265180770998-mlkllo7j9bsfirie9jh9d4qlhflso423.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh3ZD8No9K-h0syg3OwQ2G-ta4FA7keKY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265180770998-mlkllo7j9bsfirie9jh9d4qlhflso423.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
