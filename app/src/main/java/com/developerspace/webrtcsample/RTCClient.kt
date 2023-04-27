@@ -155,7 +155,8 @@ class RTCClient(
                 val answer = hashMapOf(
                         "sdp" to desc?.description,
                         "type" to desc?.type,
-                        "charizardArcaine" to "awesomeDay"
+                        "charizardArcaine" to "awesomeDay",
+                        "Basketball" to "I love this sport"
                 )
                 db.collection("calls").document(meetingID)
                         .set(answer)
