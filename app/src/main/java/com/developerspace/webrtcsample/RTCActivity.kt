@@ -162,9 +162,9 @@ class RTCActivity : AppCompatActivity() {
                 }
         )
 
-        rtcClient.initSurfaceView(remote_view)
-        rtcClient.initSurfaceView(local_view)
-        rtcClient.startLocalVideoCapture(local_view)
+//        rtcClient.initSurfaceView(remote_view)
+//        rtcClient.initSurfaceView(local_view)
+//        rtcClient.startLocalVideoCapture(local_view)
         signallingClient =  SignalingClient(meetingID,createSignallingClientListener())
         if (!isJoin)
             rtcClient.call(sdpObserver,meetingID)
