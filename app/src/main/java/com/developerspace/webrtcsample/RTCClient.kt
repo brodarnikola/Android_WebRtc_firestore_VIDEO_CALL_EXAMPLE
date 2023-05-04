@@ -16,6 +16,8 @@ class RTCClient(
     companion object {
         private const val LOCAL_TRACK_ID = "local_track"
         private const val LOCAL_STREAM_ID = "local_track"
+        var localDataChannel1: DataChannel? = null
+
     }
 
     private val rootEglBase: EglBase = EglBase.create()
@@ -42,7 +44,7 @@ class RTCClient(
 
     private val audioSource by lazy { peerConnectionFactory.createAudioSource(MediaConstraints())}
     private val localVideoSource by lazy { peerConnectionFactory.createVideoSource(false) }
-    private val peerConnection by lazy { buildPeerConnection(observer) }
+    val peerConnection by lazy { buildPeerConnection(observer) }
 
     private fun initPeerConnectionFactory(context: Application) {
         val options = PeerConnectionFactory.InitializationOptions.builder(context)
@@ -64,11 +66,19 @@ class RTCClient(
                 .createPeerConnectionFactory()
     }
 
-    private fun buildPeerConnection(observer: PeerConnection.Observer) = peerConnectionFactory.createPeerConnection(
+    private fun buildPeerConnection(observer: PeerConnection.Observer) : PeerConnection? {
+
+        val localPeerConnection = peerConnectionFactory.createPeerConnection(
             iceServer,
             observer
-    )
+        )
 
+//        localDataChannel =
+//            localPeerConnection!!.createDataChannel("sendDataChannel", DataChannel.Init())
+
+
+        return localPeerConnection
+    }
     private fun getVideoCapturer(context: Context) =
             Camera2Enumerator(context).run {
                 deviceNames.find {

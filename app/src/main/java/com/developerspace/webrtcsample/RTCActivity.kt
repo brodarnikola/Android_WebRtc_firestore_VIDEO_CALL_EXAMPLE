@@ -3,11 +3,11 @@ package com.developerspace.webrtcsample
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
@@ -15,7 +15,10 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.webrtc.*
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 import java.util.*
+
 
 @ExperimentalCoroutinesApi
 class RTCActivity : AppCompatActivity() {
@@ -116,12 +119,32 @@ class RTCActivity : AppCompatActivity() {
         }
     }
 
+    private fun stringToByteBuffer(msg: String, charset: Charset): ByteBuffer {
+        return ByteBuffer.wrap(msg.toByteArray(charset))
+    }
+
+    private fun readIncomingMessage(buffer: ByteBuffer) {
+        val bytes: ByteArray
+        if (buffer.hasArray()) {
+            bytes = buffer.array()
+        } else {
+            bytes = ByteArray(buffer.remaining())
+            buffer[bytes]
+        }
+        val firstMessage = String(bytes, Charset.defaultCharset())
+        Toast.makeText(applicationContext, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
+    }
+
+
+    var localDataChannel: DataChannel? = null
+
     private fun onCameraAndAudioPermissionGranted() {
         rtcClient = RTCClient(
                 application,
                 object : PeerConnectionObserver() {
                     override fun onIceCandidate(p0: IceCandidate?) {
                         super.onIceCandidate(p0)
+                        Log.d(TAG, "Awesome.. --1111 onAddStream: $p0")
                         signallingClient.sendIceCandidate(p0, isJoin)
                         rtcClient.addIceCandidate(p0)
                     }
@@ -134,6 +157,32 @@ class RTCActivity : AppCompatActivity() {
 
                     override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
                         Log.d(TAG, "Awesome.. 1111 onIceConnectionChange: $p0")
+                        if( p0 == PeerConnection.IceConnectionState.CONNECTED )
+                            Log.d(TAG, "Awesome.. 1 It is connected")
+                        else if( p0 == PeerConnection.IceConnectionState.COMPLETED ) {
+                            val meta: ByteBuffer =
+                                stringToByteBuffer("awesome", Charset.defaultCharset())
+
+                            localDataChannel = RTCClient(application, this).peerConnection!!.createDataChannel("sendDataChannel",  DataChannel.Init());
+
+                            localDataChannel?.send(DataChannel.Buffer(meta, false))
+                            Log.d(TAG, "Awesome.. 2 It is to the end completed connection")
+                        }
+                        else if( p0 == PeerConnection.IceConnectionState.DISCONNECTED )
+                            Log.d(TAG, "Awesome.. 3 Connection is finished")
+
+//                        val test9 = DataChannel.Init()
+//
+//                        val dcInit = DataChannel.Init()
+//                        dcInit.id = 1
+//                        dataChannel = pc.createDataChannel("1", dcInit)
+//                        dataChannel.registerObserver(DcObserver())
+//
+//                        val buffer: ByteBuffer = ByteBuffer.wrap("Awesome".toByteArray(Charsets.UTF_8))
+//                        peerConnectionClient.getPCDataChannel()
+//                            .send(DataChannel.Buffer(buffer, false))
+
+
                     }
 
                     override fun onIceConnectionReceivingChange(p0: Boolean) {
@@ -146,6 +195,21 @@ class RTCActivity : AppCompatActivity() {
 
                     override fun onDataChannel(p0: DataChannel?) {
                         Log.d(TAG, "Awesome.. 4444  onDataChannel: $p0")
+
+                        localDataChannel!!.registerObserver(object : DataChannel.Observer {
+                            override fun onBufferedAmountChange(l: Long) {}
+                            override fun onStateChange() {
+                                Log.d(TAG,
+                                    "onStateChange: remote data channel state: " + localDataChannel!!.state()
+                                        .toString()
+                                )
+                            }
+
+                            override fun onMessage(buffer: DataChannel.Buffer) {
+                                Log.d(TAG, "onMessage: got message ${buffer.data}")
+                                readIncomingMessage(buffer.data)
+                            }
+                        })
                     }
 
                     override fun onStandardizedIceConnectionChange(newState: PeerConnection.IceConnectionState?) {

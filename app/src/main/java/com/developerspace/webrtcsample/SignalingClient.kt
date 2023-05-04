@@ -52,9 +52,9 @@ class SignalingClient(
         db.enableNetwork().addOnSuccessListener {
             listener.onConnectionEstablished()
         }
-        val sendData = sendChannel.offer("")
+        val sendData = sendChannel.offer("Awesome")
         sendData.let {
-            Log.v(this@SignalingClient.javaClass.simpleName, "Sending: $it")
+            Log.v(this@SignalingClient.javaClass.simpleName, "Sending: ${it}")
 //            val data = hashMapOf(
 //                    "data" to it
 //            )
@@ -84,8 +84,9 @@ class SignalingClient(
                                 listener.onOfferReceived(SessionDescription(
                                     SessionDescription.Type.OFFER,data["sdp"].toString()))
                             SDPtype = "Offer"
-                        } else if (data?.containsKey("type") &&
+                        } else if (data.containsKey("type") &&
                             data.getValue("type").toString() == "ANSWER") {
+                            Log.d(TAG, "Awesome.. 4 Answer is received")
                                 listener.onAnswerReceived(SessionDescription(
                                     SessionDescription.Type.ANSWER,data["sdp"].toString()))
                             SDPtype = "Answer"
