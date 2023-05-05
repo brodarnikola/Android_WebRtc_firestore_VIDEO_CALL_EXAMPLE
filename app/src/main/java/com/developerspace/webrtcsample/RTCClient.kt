@@ -3,9 +3,16 @@ package com.developerspace.webrtcsample
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.webrtc.*
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 
 class RTCClient(
@@ -16,7 +23,7 @@ class RTCClient(
     companion object {
         private const val LOCAL_TRACK_ID = "local_track"
         private const val LOCAL_STREAM_ID = "local_track"
-        var localDataChannel1: DataChannel? = null
+        var localDataChannel: DataChannel? = null
 
     }
 
@@ -60,10 +67,14 @@ class RTCClient(
                 .setVideoDecoderFactory(DefaultVideoDecoderFactory(rootEglBase.eglBaseContext))
                 .setVideoEncoderFactory(DefaultVideoEncoderFactory(rootEglBase.eglBaseContext, true, true))
                 .setOptions(PeerConnectionFactory.Options().apply {
-                    disableEncryption = true
+                    disableEncryption = false // true
                     disableNetworkMonitor = true
                 })
                 .createPeerConnectionFactory()
+    }
+
+    private fun stringToByteBuffer(msg: String, charset: Charset): ByteBuffer {
+        return ByteBuffer.wrap(msg.toByteArray(charset))
     }
 
     private fun buildPeerConnection(observer: PeerConnection.Observer) : PeerConnection? {
@@ -73,9 +84,52 @@ class RTCClient(
             observer
         )
 
-//        localDataChannel =
-//            localPeerConnection!!.createDataChannel("sendDataChannel", DataChannel.Init())
 
+        Log.d(TAG, "Awesome.. 5 localPeerConnection is ${localPeerConnection}")
+
+        val dcInit = DataChannel.Init()
+        localDataChannel =
+            localPeerConnection!!.createDataChannel("sendDataChannel", dcInit)
+        /*if( localDataChannel != null ) {
+            localDataChannel!!.registerObserver(object : DataChannel.Observer {
+
+                override fun onBufferedAmountChange(p0: Long) {
+
+                }
+
+
+                override fun onStateChange() {
+                    Log.d(TAG,
+                        "11 onStateChange: remote data channel state: " + localDataChannel!!.state()
+                            .toString()
+                    )
+                    if( localDataChannel!!.state() == DataChannel.State.OPEN ) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            delay(2000)
+                            val meta: ByteBuffer =
+                                stringToByteBuffer("Awesome 99", Charset.defaultCharset())
+                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
+                        }
+                    }
+                }
+
+                override fun onMessage(buffer: DataChannel.Buffer) {
+                    Log.d(TAG, "onMessage: got message ${buffer.data}")
+                    val bytes: ByteArray
+                    if (buffer.data.hasArray()) {
+                        bytes = buffer.data.array()
+                    } else {
+                        bytes = ByteArray(buffer.data.remaining())
+                        buffer.data[bytes]
+                    }
+                    val firstMessage = String(bytes, Charset.defaultCharset())
+                    Log.d(TAG, "New text is: $firstMessage")
+                    // Toast.makeText(, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
+                }
+            })
+        }*/
+
+        Log.d(TAG, "Awesome.. 7 localDataChannel is ${localDataChannel}")
 
         return localPeerConnection
     }
@@ -164,9 +218,7 @@ class RTCClient(
             override fun onCreateSuccess(desc: SessionDescription?) {
                 val answer = hashMapOf(
                         "sdp" to desc?.description,
-                        "type" to desc?.type,
-                        "charizardArcaine" to "awesomeDay",
-                        "Basketball" to "I love this sport"
+                        "type" to desc?.type
                 )
                 db.collection("calls").document(meetingID)
                         .set(answer)

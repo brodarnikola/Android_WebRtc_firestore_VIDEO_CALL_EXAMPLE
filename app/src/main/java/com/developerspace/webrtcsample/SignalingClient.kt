@@ -42,7 +42,7 @@ class SignalingClient(
 //        }
 //    }
 
-    private val sendChannel = ConflatedBroadcastChannel<String>()
+    val sendChannel = ConflatedBroadcastChannel<String>()
 
     init {
         connect()
@@ -52,7 +52,7 @@ class SignalingClient(
         db.enableNetwork().addOnSuccessListener {
             listener.onConnectionEstablished()
         }
-        val sendData = sendChannel.offer("Awesome")
+        val sendData = sendChannel.offer("")
         sendData.let {
             Log.v(this@SignalingClient.javaClass.simpleName, "Sending: ${it}")
 //            val data = hashMapOf(

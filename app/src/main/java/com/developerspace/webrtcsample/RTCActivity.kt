@@ -11,9 +11,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
+import com.developerspace.webrtcsample.RTCClient.Companion.localDataChannel
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_start.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.*
 import org.webrtc.*
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
@@ -69,15 +70,21 @@ class RTCActivity : AppCompatActivity() {
         }
 
         audio_output_button.setOnClickListener {
-            if (inSpeakerMode) {
-                inSpeakerMode = false
-                audio_output_button.setImageResource(R.drawable.ic_baseline_hearing_24)
-                audioManager.setDefaultAudioDevice(RTCAudioManager.AudioDevice.EARPIECE)
-            } else {
-                inSpeakerMode = true
-                audio_output_button.setImageResource(R.drawable.ic_baseline_speaker_up_24)
-                audioManager.setDefaultAudioDevice(RTCAudioManager.AudioDevice.SPEAKER_PHONE)
-            }
+            val meta: ByteBuffer =
+                stringToByteBuffer("Awesome 10", Charset.defaultCharset())
+            Log.d(TAG, "Awesome.. send meta: ${meta}")
+            localDataChannel?.send(DataChannel.Buffer( meta,false))
+
+            Log.d(TAG, "Awesome.. send message: ${localDataChannel}")
+//            if (inSpeakerMode) {
+//                inSpeakerMode = false
+//                audio_output_button.setImageResource(R.drawable.ic_baseline_hearing_24)
+//                audioManager.setDefaultAudioDevice(RTCAudioManager.AudioDevice.EARPIECE)
+//            } else {
+//                inSpeakerMode = true
+//                audio_output_button.setImageResource(R.drawable.ic_baseline_speaker_up_24)
+//                audioManager.setDefaultAudioDevice(RTCAudioManager.AudioDevice.SPEAKER_PHONE)
+//            }
         }
         video_button.setOnClickListener {
             if (isVideoPaused) {
@@ -123,7 +130,7 @@ class RTCActivity : AppCompatActivity() {
         return ByteBuffer.wrap(msg.toByteArray(charset))
     }
 
-    private fun readIncomingMessage(buffer: ByteBuffer) {
+    fun readIncomingMessage(buffer: ByteBuffer) {
         val bytes: ByteArray
         if (buffer.hasArray()) {
             bytes = buffer.array()
@@ -132,11 +139,11 @@ class RTCActivity : AppCompatActivity() {
             buffer[bytes]
         }
         val firstMessage = String(bytes, Charset.defaultCharset())
-        Toast.makeText(applicationContext, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
+        CoroutineScope(Dispatchers.Main).launch {
+            Toast.makeText(applicationContext, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
+        }
     }
 
-
-    var localDataChannel: DataChannel? = null
 
     private fun onCameraAndAudioPermissionGranted() {
         rtcClient = RTCClient(
@@ -157,31 +164,24 @@ class RTCActivity : AppCompatActivity() {
 
                     override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
                         Log.d(TAG, "Awesome.. 1111 onIceConnectionChange: $p0")
-                        if( p0 == PeerConnection.IceConnectionState.CONNECTED )
+                        if( p0 == PeerConnection.IceConnectionState.CONNECTED ) {
+//                            signallingClient.sendChannel.offer("Awesome 33")
+
+                            val meta: ByteBuffer =
+                                stringToByteBuffer("Awesome 44", Charset.defaultCharset())
+//                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
                             Log.d(TAG, "Awesome.. 1 It is connected")
+                        }
                         else if( p0 == PeerConnection.IceConnectionState.COMPLETED ) {
                             val meta: ByteBuffer =
-                                stringToByteBuffer("awesome", Charset.defaultCharset())
+                                stringToByteBuffer("awesome 55", Charset.defaultCharset())
 
-                            localDataChannel = RTCClient(application, this).peerConnection!!.createDataChannel("sendDataChannel",  DataChannel.Init());
-
-                            localDataChannel?.send(DataChannel.Buffer(meta, false))
+//                            signallingClient.sendChannel.offer("Awesome 22")
+//                            localDataChannel?.send(DataChannel.Buffer(meta, false))
                             Log.d(TAG, "Awesome.. 2 It is to the end completed connection")
                         }
                         else if( p0 == PeerConnection.IceConnectionState.DISCONNECTED )
                             Log.d(TAG, "Awesome.. 3 Connection is finished")
-
-//                        val test9 = DataChannel.Init()
-//
-//                        val dcInit = DataChannel.Init()
-//                        dcInit.id = 1
-//                        dataChannel = pc.createDataChannel("1", dcInit)
-//                        dataChannel.registerObserver(DcObserver())
-//
-//                        val buffer: ByteBuffer = ByteBuffer.wrap("Awesome".toByteArray(Charsets.UTF_8))
-//                        peerConnectionClient.getPCDataChannel()
-//                            .send(DataChannel.Buffer(buffer, false))
-
 
                     }
 
@@ -191,29 +191,52 @@ class RTCActivity : AppCompatActivity() {
 
                     override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                         Log.d(TAG, "Awesome.. 3333   onConnectionChange: $newState")
+                        if( newState == PeerConnection.PeerConnectionState.CONNECTED  ) {
+
+//                            val meta: ByteBuffer =
+//                                stringToByteBuffer("Awesome 88", Charset.defaultCharset())
+//                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
+
+//                            signallingClient.sendChannel.offer("Awesome 22")
+                        }
                     }
 
                     override fun onDataChannel(p0: DataChannel?) {
+
                         Log.d(TAG, "Awesome.. 4444  onDataChannel: $p0")
+                        Log.d(TAG, "Awesome.. 4444  localDataChannel: $localDataChannel")
 
-                        localDataChannel!!.registerObserver(object : DataChannel.Observer {
-                            override fun onBufferedAmountChange(l: Long) {}
-                            override fun onStateChange() {
-                                Log.d(TAG,
-                                    "onStateChange: remote data channel state: " + localDataChannel!!.state()
-                                        .toString()
-                                )
-                            }
+                        val test9 = localDataChannel?.state()
+                        Log.d(TAG, "Awesome.. 4444  localDataChannel state: ${test9}")
+                        p0?.registerObserver(object : DataChannel.Observer {
+                                override fun onBufferedAmountChange(l: Long) {}
+                                override fun onStateChange() {
+                                    Log.d(
+                                        TAG,
+                                        "22 onStateChange: remote data channel state: " + localDataChannel!!.state()
+                                            .toString()
+                                    )
+                                }
 
-                            override fun onMessage(buffer: DataChannel.Buffer) {
-                                Log.d(TAG, "onMessage: got message ${buffer.data}")
-                                readIncomingMessage(buffer.data)
-                            }
-                        })
+                                override fun onMessage(buffer: DataChannel.Buffer) {
+                                    Log.d(TAG, "22 onMessage: got message")
+                                    readIncomingMessage(buffer.data)
+                                }
+                            })
+
                     }
 
                     override fun onStandardizedIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
                         Log.d(TAG, "Awesome.. 5555  onStandardizedIceConnectionChange: $newState")
+                        if( newState == PeerConnection.IceConnectionState.CONNECTED ||
+                                newState == PeerConnection.IceConnectionState.COMPLETED) {
+
+                            val meta: ByteBuffer =
+                                stringToByteBuffer("Awesome 44", Charset.defaultCharset())
+//                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
+
+//                            signallingClient.sendChannel.offer("Awesome 22")
+                        }
                     }
 
                     override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {
