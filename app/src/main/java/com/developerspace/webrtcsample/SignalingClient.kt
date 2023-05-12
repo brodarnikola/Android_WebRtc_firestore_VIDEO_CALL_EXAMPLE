@@ -42,19 +42,20 @@ class SignalingClient(
 //        }
 //    }
 
-    private val sendChannel = ConflatedBroadcastChannel<String>()
+    val sendChannel = ConflatedBroadcastChannel<String>()
 
     init {
         connect()
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun connect() = launch {
         db.enableNetwork().addOnSuccessListener {
             listener.onConnectionEstablished()
         }
         val sendData = sendChannel.offer("")
         sendData.let {
-            Log.v(this@SignalingClient.javaClass.simpleName, "Sending: $it")
+            Log.v(this@SignalingClient.javaClass.simpleName, "Sending: ${it}")
 //            val data = hashMapOf(
 //                    "data" to it
 //            )
@@ -80,12 +81,13 @@ class SignalingClient(
                     if (snapshot != null && snapshot.exists()) {
                         val data = snapshot.data
                         if (data?.containsKey("type")!! &&
-                            data.getValue("type").toString() == "OFFER") {
+                            data.getValue("type").toString().lowercase() == "OFFER".lowercase()) {
                                 listener.onOfferReceived(SessionDescription(
                                     SessionDescription.Type.OFFER,data["sdp"].toString()))
                             SDPtype = "Offer"
-                        } else if (data?.containsKey("type") &&
-                            data.getValue("type").toString() == "ANSWER") {
+                        } else if (data.containsKey("type") &&
+                            data.getValue("type").toString().lowercase() == "ANSWER".lowercase()) {
+                            Log.d(TAG, "Awesome.. 4 Answer is received")
                                 listener.onAnswerReceived(SessionDescription(
                                     SessionDescription.Type.ANSWER,data["sdp"].toString()))
                             SDPtype = "Answer"
@@ -111,12 +113,12 @@ class SignalingClient(
                             for (dataSnapShot in querysnapshot) {
 
                                 val data = dataSnapShot.data
-                                if (SDPtype == "Offer" && data.containsKey("type") && data.get("type")=="offerCandidate") {
+                                if (SDPtype?.lowercase() == "Offer".lowercase() && data.containsKey("type") && data.get("type")=="offerCandidate") {
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
                                                     data["sdpCandidate"].toString()))
-                                } else if (SDPtype == "Answer" && data.containsKey("type") && data.get("type")=="answerCandidate") {
+                                } else if (SDPtype?.lowercase() == "Answer".lowercase() && data.containsKey("type") && data.get("type")=="answerCandidate") {
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
@@ -148,14 +150,17 @@ class SignalingClient(
         }
     }
 
+    
+
     fun sendIceCandidate(candidate: IceCandidate?,isJoin : Boolean) = runBlocking {
         val type = when {
             isJoin -> "answerCandidate"
             else -> "offerCandidate"
         }
+//        val sdpMid = if( !isJoin ) "data" else candidate?.sdp
         val candidateConstant = hashMapOf(
                 "serverUrl" to candidate?.serverUrl,
-                "sdpMid" to candidate?.sdpMid,
+                "sdpMid" to candidate?.sdpMid, // sdpMid // "data", // candidate?.sdpMid,
                 "sdpMLineIndex" to candidate?.sdpMLineIndex,
                 "sdpCandidate" to candidate?.sdp,
                 "type" to type
