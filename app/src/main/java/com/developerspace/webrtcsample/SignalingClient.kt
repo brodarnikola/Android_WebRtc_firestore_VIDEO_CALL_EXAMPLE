@@ -155,9 +155,10 @@ class SignalingClient(
             isJoin -> "answerCandidate"
             else -> "offerCandidate"
         }
+//        val sdpMid = if( !isJoin ) "data" else candidate?.sdp
         val candidateConstant = hashMapOf(
                 "serverUrl" to candidate?.serverUrl,
-                "sdpMid" to candidate?.sdpMid, // "data", // candidate?.sdpMid,
+                "sdpMid" to candidate?.sdpMid, // sdpMid // "data", // candidate?.sdpMid,
                 "sdpMLineIndex" to candidate?.sdpMLineIndex,
                 "sdpCandidate" to candidate?.sdp,
                 "type" to type

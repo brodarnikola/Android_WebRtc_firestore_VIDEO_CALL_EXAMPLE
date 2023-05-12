@@ -163,7 +163,7 @@ class RTCClient(
 
     private fun PeerConnection.call(sdpObserver: SdpObserver, meetingID: String) {
         val constraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+            optional.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
         }
 
         createOffer(object : SdpObserver by sdpObserver {
@@ -212,7 +212,7 @@ class RTCClient(
 
     private fun PeerConnection.answer(sdpObserver: SdpObserver, meetingID: String) {
         val constraints = MediaConstraints().apply {
-            mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
+            optional.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
         }
         createAnswer(object : SdpObserver by sdpObserver {
             override fun onCreateSuccess(desc: SessionDescription?) {
