@@ -263,16 +263,24 @@ class RTCActivity : AppCompatActivity() {
         }
 
         override fun onOfferReceived(description: SessionDescription) {
-            rtcClient.onRemoteSessionReceived(description)
-            Constants.isIntiatedNow = false
-            rtcClient.answer(sdpObserver,meetingID)
-            remote_view_loading.isGone = true
+
+            Log.d(TAG, "Awesome.. 7777  onTrack: ${   rtcClient.peerConnection?.signalingState()}" )
+            if( isJoin ) {
+                rtcClient.onRemoteSessionReceived(description)
+                Constants.isIntiatedNow = false
+                rtcClient.answer(sdpObserver, meetingID)
+                remote_view_loading.isGone = true
+            }
         }
 
         override fun onAnswerReceived(description: SessionDescription) {
-            rtcClient.onRemoteSessionReceived(description)
-            Constants.isIntiatedNow = false
-            remote_view_loading.isGone = true
+            Log.d(TAG, "Awesome.. Answer  ${   rtcClient.peerConnection?.signalingState()}" )
+
+            if( !isJoin ) {
+                rtcClient.onRemoteSessionReceived(description)
+                Constants.isIntiatedNow = false
+                remote_view_loading.isGone = true
+            }
         }
 
         override fun onIceCandidateReceived(iceCandidate: IceCandidate) {

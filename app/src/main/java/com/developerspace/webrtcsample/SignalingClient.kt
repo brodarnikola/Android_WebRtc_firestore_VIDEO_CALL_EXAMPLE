@@ -48,6 +48,7 @@ class SignalingClient(
         connect()
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     private fun connect() = launch {
         db.enableNetwork().addOnSuccessListener {
             listener.onConnectionEstablished()
@@ -80,12 +81,12 @@ class SignalingClient(
                     if (snapshot != null && snapshot.exists()) {
                         val data = snapshot.data
                         if (data?.containsKey("type")!! &&
-                            data.getValue("type").toString() == "OFFER") {
+                            data.getValue("type").toString().lowercase() == "OFFER".lowercase()) {
                                 listener.onOfferReceived(SessionDescription(
                                     SessionDescription.Type.OFFER,data["sdp"].toString()))
                             SDPtype = "Offer"
                         } else if (data.containsKey("type") &&
-                            data.getValue("type").toString() == "ANSWER") {
+                            data.getValue("type").toString().lowercase() == "ANSWER".lowercase()) {
                             Log.d(TAG, "Awesome.. 4 Answer is received")
                                 listener.onAnswerReceived(SessionDescription(
                                     SessionDescription.Type.ANSWER,data["sdp"].toString()))
@@ -112,12 +113,12 @@ class SignalingClient(
                             for (dataSnapShot in querysnapshot) {
 
                                 val data = dataSnapShot.data
-                                if (SDPtype == "Offer" && data.containsKey("type") && data.get("type")=="offerCandidate") {
+                                if (SDPtype?.lowercase() == "Offer".lowercase() && data.containsKey("type") && data.get("type")=="offerCandidate") {
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
                                                     data["sdpCandidate"].toString()))
-                                } else if (SDPtype == "Answer" && data.containsKey("type") && data.get("type")=="answerCandidate") {
+                                } else if (SDPtype?.lowercase() == "Answer".lowercase() && data.containsKey("type") && data.get("type")=="answerCandidate") {
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
@@ -156,7 +157,7 @@ class SignalingClient(
         }
         val candidateConstant = hashMapOf(
                 "serverUrl" to candidate?.serverUrl,
-                "sdpMid" to candidate?.sdpMid,
+                "sdpMid" to candidate?.sdpMid, // "data", // candidate?.sdpMid,
                 "sdpMLineIndex" to candidate?.sdpMLineIndex,
                 "sdpCandidate" to candidate?.sdp,
                 "type" to type

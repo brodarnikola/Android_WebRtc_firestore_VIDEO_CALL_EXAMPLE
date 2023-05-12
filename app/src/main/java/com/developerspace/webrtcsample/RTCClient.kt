@@ -90,44 +90,44 @@ class RTCClient(
         val dcInit = DataChannel.Init()
         localDataChannel =
             localPeerConnection!!.createDataChannel("sendDataChannel", dcInit)
-        /*if( localDataChannel != null ) {
-            localDataChannel!!.registerObserver(object : DataChannel.Observer {
-
-                override fun onBufferedAmountChange(p0: Long) {
-
-                }
-
-
-                override fun onStateChange() {
-                    Log.d(TAG,
-                        "11 onStateChange: remote data channel state: " + localDataChannel!!.state()
-                            .toString()
-                    )
-                    if( localDataChannel!!.state() == DataChannel.State.OPEN ) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            delay(2000)
-                            val meta: ByteBuffer =
-                                stringToByteBuffer("Awesome 99", Charset.defaultCharset())
-                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
-                        }
-                    }
-                }
-
-                override fun onMessage(buffer: DataChannel.Buffer) {
-                    Log.d(TAG, "onMessage: got message ${buffer.data}")
-                    val bytes: ByteArray
-                    if (buffer.data.hasArray()) {
-                        bytes = buffer.data.array()
-                    } else {
-                        bytes = ByteArray(buffer.data.remaining())
-                        buffer.data[bytes]
-                    }
-                    val firstMessage = String(bytes, Charset.defaultCharset())
-                    Log.d(TAG, "New text is: $firstMessage")
-                    // Toast.makeText(, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
-                }
-            })
-        }*/
+//        if( localDataChannel != null ) {
+//            localDataChannel!!.registerObserver(object : DataChannel.Observer {
+//
+//                override fun onBufferedAmountChange(p0: Long) {
+//
+//                }
+//
+//
+//                override fun onStateChange() {
+//                    Log.d(TAG,
+//                        "11 onStateChange: remote data channel state: " + localDataChannel!!.state()
+//                            .toString()
+//                    )
+//                    if( localDataChannel!!.state() == DataChannel.State.OPEN ) {
+////                        CoroutineScope(Dispatchers.IO).launch {
+////                            delay(2000)
+//                            val meta: ByteBuffer =
+//                                stringToByteBuffer("Awesome 99", Charset.defaultCharset())
+//                            localDataChannel!!.send(DataChannel.Buffer(meta, false))
+////                        }
+//                    }
+//                }
+//
+//                override fun onMessage(buffer: DataChannel.Buffer) {
+////                    Log.d(TAG, "onMessage: got message ${buffer.data}")
+////                    val bytes: ByteArray
+////                    if (buffer.data.hasArray()) {
+////                        bytes = buffer.data.array()
+////                    } else {
+////                        bytes = ByteArray(buffer.data.remaining())
+////                        buffer.data[bytes]
+////                    }
+////                    val firstMessage = String(bytes, Charset.defaultCharset())
+////                    Log.d(TAG, "New text is: $firstMessage")
+//                    // Toast.makeText(, "New text is: $firstMessage", Toast.LENGTH_LONG).show()
+//                }
+//            })
+//        }
 
         Log.d(TAG, "Awesome.. 7 localDataChannel is ${localDataChannel}")
 
@@ -259,7 +259,9 @@ class RTCClient(
     fun answer(sdpObserver: SdpObserver, meetingID: String) = peerConnection?.answer(sdpObserver, meetingID)
 
     fun onRemoteSessionReceived(sessionDescription: SessionDescription) {
+
         remoteSessionDescription = sessionDescription
+
         peerConnection?.setRemoteDescription(object : SdpObserver {
             override fun onSetFailure(p0: String?) {
                 Log.e(TAG, "onSetFailure: $p0")
