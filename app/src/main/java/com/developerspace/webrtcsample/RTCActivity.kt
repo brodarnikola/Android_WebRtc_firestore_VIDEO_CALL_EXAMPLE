@@ -16,6 +16,7 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_start.*
 import kotlinx.coroutines.*
 import org.webrtc.*
+import java.lang.Exception
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.util.*
@@ -70,12 +71,21 @@ class RTCActivity : AppCompatActivity() {
         }
 
         audio_output_button.setOnClickListener {
-            val meta: ByteBuffer =
-                stringToByteBuffer("Awesome 10", Charset.defaultCharset())
-            Log.d(TAG, "Awesome.. send meta: ${meta}")
-            localDataChannel?.send(DataChannel.Buffer( meta,false))
+            try {
+                val meta: ByteBuffer =
+                    stringToByteBuffer("Awesome 10", Charset.defaultCharset())
+                Log.d(TAG, "Awesome.. send meta: ${meta}")
+                localDataChannel?.send(DataChannel.Buffer( meta,false))
 
-            Log.d(TAG, "Awesome.. send message: ${localDataChannel}")
+                Log.d(TAG, "Awesome.. DC : ${localDataChannel}")
+                Log.d(TAG, "Awesome.. DC bufferedAmount: ${localDataChannel?.bufferedAmount()}")
+                Log.d(TAG, "Awesome.. DC id: ${localDataChannel?.id()}")
+            }
+            catch (e: Exception) {
+
+                Log.d(TAG, "Awesome.. 1111 exception is: $e")
+            }
+
 //            if (inSpeakerMode) {
 //                inSpeakerMode = false
 //                audio_output_button.setImageResource(R.drawable.ic_baseline_hearing_24)
@@ -163,7 +173,7 @@ class RTCActivity : AppCompatActivity() {
                     }
 
                     override fun onIceConnectionChange(p0: PeerConnection.IceConnectionState?) {
-                        Log.d(TAG, "Awesome.. 1111 onIceConnectionChange: $p0")
+
                         if( p0 == PeerConnection.IceConnectionState.CONNECTED ) {
 //                            signallingClient.sendChannel.offer("Awesome 33")
 
@@ -191,6 +201,7 @@ class RTCActivity : AppCompatActivity() {
 
                     override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                         Log.d(TAG, "Awesome.. 3333   onConnectionChange: $newState")
+
                         if( newState == PeerConnection.PeerConnectionState.CONNECTED  ) {
 
 //                            val meta: ByteBuffer =
@@ -219,7 +230,7 @@ class RTCActivity : AppCompatActivity() {
                                 }
 
                                 override fun onMessage(buffer: DataChannel.Buffer) {
-                                    Log.d(TAG, "22 onMessage: got message")
+                                    Log.d(TAG, "22 onMes≠≠==sage: got message")
                                     readIncomingMessage(buffer.data)
                                 }
                             })
@@ -276,7 +287,9 @@ class RTCActivity : AppCompatActivity() {
         override fun onAnswerReceived(description: SessionDescription) {
             Log.d(TAG, "Awesome.. Answer  ${   rtcClient.peerConnection?.signalingState()}" )
 
-            if( !isJoin ) {
+            if( !isJoin
+                && rtcClient.peerConnection?.signalingState() != PeerConnection.SignalingState.STABLE
+            ) {
                 rtcClient.onRemoteSessionReceived(description)
                 Constants.isIntiatedNow = false
                 remote_view_loading.isGone = true

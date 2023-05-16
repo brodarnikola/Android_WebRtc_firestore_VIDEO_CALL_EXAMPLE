@@ -110,6 +110,7 @@ class SignalingClient(
                         }
 
                         if (querysnapshot != null && !querysnapshot.isEmpty) {
+
                             for (dataSnapShot in querysnapshot) {
 
                                 val data = dataSnapShot.data
@@ -118,11 +119,14 @@ class SignalingClient(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
                                                     data["sdpCandidate"].toString()))
-                                } else if (SDPtype?.lowercase() == "Answer".lowercase() && data.containsKey("type") && data.get("type")=="answerCandidate") {
+                                } else if (SDPtype?.lowercase() == "Answer".lowercase()
+//                                    && data.containsKey("type") && data.get("type")=="answerCandidate"
+                                ) {
+
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
-                                                    data["sdpCandidate"].toString()))
+                                                    data["candidate"].toString()))
                                 }
                                 Log.e(TAG, "candidateQuery: $dataSnapShot" )
                             }
