@@ -118,7 +118,7 @@ class SignalingClient(
                                     listener.onIceCandidateReceived(
                                             IceCandidate(data["sdpMid"].toString(),
                                                     Math.toIntExact(data["sdpMLineIndex"] as Long),
-                                                    data["sdpCandidate"].toString()))
+                                                    data["candidate"].toString()))
                                 } else if (SDPtype?.lowercase() == "Answer".lowercase()
 //                                    && data.containsKey("type") && data.get("type")=="answerCandidate"
                                 ) {
@@ -166,7 +166,7 @@ class SignalingClient(
                 "serverUrl" to candidate?.serverUrl,
                 "sdpMid" to candidate?.sdpMid, // sdpMid // "data", // candidate?.sdpMid,
                 "sdpMLineIndex" to candidate?.sdpMLineIndex,
-                "sdpCandidate" to candidate?.sdp,
+                "candidate" to candidate?.sdp,
                 "type" to type
         )
         db.collection("calls")

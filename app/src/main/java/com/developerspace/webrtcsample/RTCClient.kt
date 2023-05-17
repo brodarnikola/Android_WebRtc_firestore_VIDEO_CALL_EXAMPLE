@@ -89,7 +89,7 @@ class RTCClient(
 
         val dcInit = DataChannel.Init()
         localDataChannel =
-            localPeerConnection!!.createDataChannel("sendDataChannel", dcInit)
+            localPeerConnection!!.createDataChannel("mobileDataChannel", dcInit)
 //        if( localDataChannel != null ) {
 //            localDataChannel!!.registerObserver(object : DataChannel.Observer {
 //
