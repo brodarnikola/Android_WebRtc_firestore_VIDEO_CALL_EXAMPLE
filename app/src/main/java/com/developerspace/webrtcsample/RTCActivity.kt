@@ -213,6 +213,7 @@ class RTCActivity : AppCompatActivity() {
 //                }
 //                imageAdapter.addSelectedImages(selectedPaths)
 //            }
+            
 
             if (data?.clipData != null) {
                 val x = data.clipData!!.itemCount
