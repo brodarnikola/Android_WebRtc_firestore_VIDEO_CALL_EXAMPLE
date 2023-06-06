@@ -1,17 +1,22 @@
 package com.developerspace.webrtcsample
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_GET_CONTENT
 import android.content.pm.PackageManager
+import android.database.Cursor
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.core.view.isGone
 import androidx.recyclerview.widget.GridLayoutManager
 import com.developerspace.webrtcsample.RTCClient.Companion.localDataChannel
@@ -28,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONException
 import org.json.JSONObject
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -37,6 +41,13 @@ import org.webrtc.PeerConnection
 import org.webrtc.RtpReceiver
 import org.webrtc.RtpTransceiver
 import org.webrtc.SessionDescription
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
@@ -67,8 +78,16 @@ class RTCActivity : AppCompatActivity() {
 
     private var inSpeakerMode = true
 
+    val CHUNK_SIZE = 64000 // 128000 // 64000
+
     var list: ArrayList<Uri>? = null
     var adaptor: ImageDisplayAdapter? = null
+
+    var incomingFileSize = 0
+    var togetherIncomingFileSize = 0
+    var currentIndexPointer = 0
+    lateinit var imageFileBytes: ByteArray
+    var receivingFile = false
 
     private val sdpObserver = object : AppSdpObserver() {
         override fun onCreateSuccess(p0: SessionDescription?) {
@@ -97,9 +116,10 @@ class RTCActivity : AppCompatActivity() {
         switch_camera_button.setOnClickListener {
 //            rtcClient.switchCamera()
             val intent = Intent(ACTION_GET_CONTENT)
-            intent.setType("image/*")
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-            startActivityForResult(Intent.createChooser(intent, "Select Picture"), 123)
+//            intent.setType("image/*")
+            intent.setType("*/*")
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+            startActivityForResult(Intent.createChooser(intent, "Select media"), 123)
         }
 
         audio_output_button.setOnClickListener {
@@ -213,20 +233,131 @@ class RTCActivity : AppCompatActivity() {
 //                }
 //                imageAdapter.addSelectedImages(selectedPaths)
 //            }
-            
 
+            var sendedBytes = 0
             if (data?.clipData != null) {
                 val x = data.clipData!!.itemCount
                 for (i in 0 until x) {
                     list?.add(data.clipData!!.getItemAt(i).uri)
+
+//                    val imageFile = File(data.clipData!!.getItemAt(i).uri.path)
+                    val imageFile = getFile(getApplicationContext(), data.clipData!!.getItemAt(i).uri);
+                    val size = imageFile.length().toInt()
+                    val bytes: ByteArray = readPickedFileAsBytes(imageFile, size)
+                    sendedBytes = sendedBytes + bytes.size
+                    sendImage(size, bytes);
                 }
-                adaptor?.notifyDataSetChanged()
+
+                Log.d(TAG, "Awesome.. sended bytes size is: $sendedBytes")
+//                adaptor?.notifyDataSetChanged()
 //                textView.setText("Image(" + list.size() + ")")
             } else if (data?.data != null) {
                 val imgurl = data.data!!.path
                 list?.add(Uri.parse(imgurl))
+
+                val imageFile = getFile(getApplicationContext(), data.data);
+                val size = imageFile.length().toInt()
+                val bytes: ByteArray = readPickedFileAsBytes(imageFile, size)
+                sendedBytes = sendedBytes + bytes.size
+                sendImage(size, bytes);
+                Log.d(TAG, "Awesome.. sended bytes size is: $sendedBytes")
             }
         }
+    }
+
+    @Throws(IOException::class)
+    fun getFile(context: Context, uri: Uri?): File  {
+        val destinationFilename: File =
+            File(context.getFilesDir().getPath() + File.separatorChar + queryName(context, uri!!))
+        try {
+            if (uri != null) {
+                context.getContentResolver().openInputStream(uri).use { ins ->
+                    if (ins != null) {
+                        createFileFromStream(
+                            ins,
+                            destinationFilename
+                        )
+                    }
+                }
+            }
+        } catch (ex: java.lang.Exception) {
+            Log.e("Save File", ex.message!!)
+            ex.printStackTrace()
+        }
+        return destinationFilename
+    }
+
+    private fun queryName(context: Context, uri: Uri): String? {
+        val returnCursor: Cursor = context.contentResolver.query(uri, null, null, null, null)!!
+        val nameIndex: Int = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        returnCursor.moveToFirst()
+        val name: String = returnCursor.getString(nameIndex)
+        returnCursor.close()
+        return name
+    }
+
+    fun createFileFromStream(ins: InputStream, destination: File?) {
+        try {
+            FileOutputStream(destination).use { os ->
+                val buffer = ByteArray(4096)
+                var length: Int
+                while (ins.read(buffer).also { length = it } > 0) {
+                    os.write(buffer, 0, length)
+                }
+                os.flush()
+            }
+        } catch (ex: java.lang.Exception) {
+            Log.e("Save File", ex.message!!)
+            ex.printStackTrace()
+        }
+    }
+
+    private fun sendImage(size: Int, bytes: ByteArray) {
+        val numberOfChunks: Int =
+            size /  CHUNK_SIZE
+        val meta: ByteBuffer =
+            stringToByteBuffer(
+                "-i$size", Charset.defaultCharset()
+            )
+        localDataChannel!!.send(DataChannel.Buffer(meta, false))
+        for (i in 0 until numberOfChunks) {
+            val wrap = ByteBuffer.wrap(
+                bytes,
+                i *  CHUNK_SIZE,
+                 CHUNK_SIZE
+            )
+            localDataChannel!!.send(DataChannel.Buffer(wrap, false))
+        }
+        val remainder: Int =
+            size %  CHUNK_SIZE
+        if (remainder > 0) {
+            val wrap = ByteBuffer.wrap(
+                bytes,
+                numberOfChunks *  CHUNK_SIZE,
+                remainder
+            )
+            localDataChannel!!.send(DataChannel.Buffer(wrap, false))
+        }
+    }
+
+    private fun readPickedFileAsBytes(imageFile: File, size: Int): ByteArray {
+        val bytes = ByteArray(size)
+        try {
+
+            Log.d(TAG, "Awesome.. imageFile is: $imageFile")
+            if(!imageFile.mkdir())
+                imageFile.mkdir()
+            if(!imageFile.exists() )
+                imageFile.createNewFile()
+            val buf = BufferedInputStream(FileInputStream(imageFile))
+            buf.read(bytes, 0, bytes.size)
+            buf.close()
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        return bytes
     }
 
     private fun checkCameraAndAudioPermission() {
@@ -247,6 +378,60 @@ class RTCActivity : AppCompatActivity() {
 
     private fun jsonToByteBuffer(msg: String, charset: Charset): ByteBuffer {
         return ByteBuffer.wrap(msg.toByteArray(charset))
+    }
+
+    fun readIncomingImages(buffer: ByteBuffer) {
+        val bytes: ByteArray
+        if (buffer.hasArray()) {
+            bytes = buffer.array()
+        } else {
+            bytes = ByteArray(buffer.remaining())
+            buffer[bytes]
+        }
+        if (!receivingFile) {
+            val firstMessage = String(bytes, Charset.defaultCharset())
+            val type = firstMessage.substring(0, 2)
+            if (type == "-i") {
+                incomingFileSize = firstMessage.substring(2, firstMessage.length).toInt()
+                togetherIncomingFileSize = togetherIncomingFileSize + incomingFileSize
+                imageFileBytes = ByteArray(incomingFileSize)
+                Log.d(TAG, "readIncomingMessage: incoming file size $incomingFileSize")
+                receivingFile = true
+            }
+//            else if (type == "-s") {
+//                runOnUiThread(Runnable {
+//                    binding.remoteText.setText(
+//                        firstMessage.substring(
+//                            2,
+//                            firstMessage.length
+//                        )
+//                    )
+//                })
+//            }
+        } else {
+            for (b in bytes) {
+                imageFileBytes[currentIndexPointer++] = b
+            }
+            if (currentIndexPointer == incomingFileSize) {
+                Log.d(TAG, "readIncomingMessage: received all bytes.. size of sended bytes is: $togetherIncomingFileSize")
+//                val bmp = BitmapFactory.decodeByteArray(imageFileBytes, 0, imageFileBytes.size)
+                receivingFile = false
+                currentIndexPointer = 0
+
+//                val file = File("/data/data/image_${counterImage}.jpg")
+//                if (!file.exists()) {
+//                    file.createNewFile()
+//                }
+//                val fos = FileOutputStream(file)
+//                fos.write(imageFileBytes)
+//                fos.close()
+
+//                list?.add(file.toUri())
+//
+//                adaptor?.notifyDataSetChanged()
+//                runOnUiThread(Runnable { binding.image.setImageBitmap(bmp) })
+            }
+        }
     }
 
     fun readIncomingMessage(buffer: ByteBuffer) {
@@ -340,8 +525,9 @@ class RTCActivity : AppCompatActivity() {
                         }
 
                         override fun onMessage(buffer: DataChannel.Buffer) {
-                            Log.d(TAG, "22 onMes≠≠==sage: got message")
-                            readIncomingMessage(buffer.data)
+                            Log.d(TAG, "22 onMes≠≠==sage: got message.. ${buffer.data}")
+//                            readIncomingMessage(buffer.data)
+                            readIncomingImages(buffer.data)
                         }
                     })
 
